@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#22301F">
+<title>My Money Book</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div id="reminderBanner" class="reminder-banner hidden">
+  <span id="reminderText"></span>
+  <button id="reminderDismiss" class="btn-ghost">Dismiss</button>
+</div>
+
+<header class="topbar">
+  <h1>My Money Book</h1>
+  <button id="quickAddBtn" class="btn-primary">+ Add</button>
+</header>
+
+<main id="app">
+
+  <!-- DASHBOARD -->
+  <section id="view-dashboard" class="view">
+    <div class="summary-grid" id="dashAccountSummary"></div>
+
+    <h2>This month vs budget</h2>
+    <div class="envelope-list" id="dashEnvelopes"></div>
+
+    <div class="chart-row">
+      <div class="card chart-card">
+        <h3>Budget allocation vs actual</h3>
+        <canvas id="pieChart"></canvas>
+      </div>
+      <div class="card chart-card">
+        <h3>Spend trend (last 6 months)</h3>
+        <canvas id="lineChart"></canvas>
+      </div>
+    </div>
+
+    <h2>Goals</h2>
+    <div id="dashGoals"></div>
+
+    <h2>Credit cards</h2>
+    <div id="dashCC"></div>
+  </section>
+
+  <!-- ACCOUNTS -->
+  <section id="view-accounts" class="view hidden">
+    <div class="card">
+      <h2>Add account</h2>
+      <div class="form-row">
+        <input type="text" id="accName" placeholder="Account name">
+        <select id="accType">
+          <option value="bank">Bank</option>
+          <option value="cash">Cash</option>
+          <option value="creditcard">Credit card</option>
+        </select>
+        <select id="accCurrency">
+          <option value="INR">INR</option>
+          <option value="EUR">EUR</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <input type="number" id="accOpening" placeholder="Opening balance">
+        <input type="number" id="accLimit" placeholder="Credit limit (if card)">
+        <button id="addAccountBtn" class="btn-primary">Add account</button>
+      </div>
+    </div>
+
+    <h2>Your accounts</h2>
+    <div id="accountList" class="card-list"></div>
+
+    <div class="card">
+      <h2>Transfer between accounts</h2>
+      <div class="form-row">
+        <select id="transferFrom"></select>
+        <select id="transferTo"></select>
+      </div>
+      <div class="form-row">
+        <input type="number" id="transferAmount" placeholder="Amount (from account currency)">
+        <input type="date" id="transferDate">
+      </div>
+      <div class="form-row" id="transferRateRow" style="display:none;">
+        <span class="hint">Different currencies — enter conversion rate</span>
+        <input type="number" id="transferRate" placeholder="Rate" step="0.0001">
+      </div>
+      <button id="doTransferBtn" class="btn-primary">Transfer</button>
+    </div>
+  </section>
+
+  <!-- TRANSACTIONS -->
+  <section id="view-transactions" class="view hidden">
+    <div class="card">
+      <h2>Add transaction</h2>
+      <div class="form-row">
+        <div class="toggle-group" id="txTypeToggle">
+          <button data-val="expense" class="toggle-btn active">Expense</button>
+          <button data-val="income" class="toggle-btn">Income</button>
+        </div>
+        <input type="date" id="txDate">
+      </div>
+      <div class="form-row">
+        <input type="text" id="txDesc" placeholder="Description" style="flex:2;">
+        <select id="txAccount"></select>
+      </div>
+      <div class="form-row" id="txCategoryRow">
+        <select id="txEnvelope">
+          <option value="essential">Essential</option>
+          <option value="fun">Fun</option>
+          <option value="investment">Investment</option>
+        </select>
+        <select id="txSubcategory"></select>
+      </div>
+      <div class="form-row">
+        <select id="txMode">
+          <option>Card</option>
+          <option>Cash</option>
+          <option>UPI-PhonePe</option>
+          <option>UPI-GPay</option>
+          <option>UPI-SamsungPay</option>
+        </select>
+        <input type="number" id="txAmount" placeholder="Amount">
+      </div>
+      <div class="form-row">
+        <input type="text" id="txNote" placeholder="Note (optional)">
+        <button id="addTxBtn" class="btn-primary">Add</button>
+      </div>
+    </div>
+
+    <h2>History</h2>
+    <div class="form-row">
+      <select id="txFilterMonth"></select>
+      <select id="txFilterEnvelope">
+        <option value="all">All categories</option>
+        <option value="essential">Essential</option>
+        <option value="fun">Fun</option>
+        <option value="investment">Investment</option>
+      </select>
+    </div>
+    <div id="txList" class="card-list"></div>
+  </section>
+
+  <!-- BUDGET -->
+  <section id="view-budget" class="view hidden">
+    <div class="card">
+      <h2>Monthly budget base</h2>
+      <p class="hint">The amount your percentages apply to — usually your expected monthly income.</p>
+      <div class="form-row">
+        <input type="number" id="budgetBase" placeholder="e.g. 130000">
+        <button id="saveBudgetBaseBtn" class="btn-primary">Save</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Envelope percentages</h2>
+      <p class="hint">Must add up to 100%.</p>
+      <div class="pct-row">
+        <label>Essential</label>
+        <input type="number" id="pctEssential" min="0" max="100">
+        <span>%</span>
+      </div>
+      <div class="pct-row">
+        <label>Fun</label>
+        <input type="number" id="pctFun" min="0" max="100">
+        <span>%</span>
+      </div>
+      <div class="pct-row">
+        <label>Investment</label>
+        <input type="number" id="pctInvestment" min="0" max="100">
+        <span>%</span>
+      </div>
+      <p id="pctTotal" class="hint"></p>
+      <button id="savePctBtn" class="btn-primary">Save percentages</button>
+    </div>
+
+    <h2>Envelope detail</h2>
+    <div id="budgetDetail"></div>
+  </section>
+
+  <!-- GOALS -->
+  <section id="view-goals" class="view hidden">
+    <div class="card">
+      <h2>Emergency fund</h2>
+      <p class="hint">Part of your Investment envelope. Target is fixed at your request.</p>
+      <div id="emergencyGoalDisplay"></div>
+    </div>
+
+    <div class="card">
+      <h2>Fun goal — something you're saving for</h2>
+      <div class="form-row">
+        <input type="text" id="funGoalName" placeholder="What are you saving for?">
+      </div>
+      <div class="form-row">
+        <input type="number" id="funGoalTarget" placeholder="Target amount (INR)">
+        <input type="date" id="funGoalDate">
+      </div>
+      <button id="saveFunGoalBtn" class="btn-primary">Save goal</button>
+      <div id="funGoalDisplay"></div>
+    </div>
+  </section>
+
+  <!-- IOU -->
+  <section id="view-iou" class="view hidden">
+    <div class="card">
+      <h2>Log a lend / borrow</h2>
+      <div class="form-row">
+        <input type="text" id="iouPerson" placeholder="Person's name">
+        <div class="toggle-group" id="iouDirToggle">
+          <button data-val="lent" class="toggle-btn active">I lent</button>
+          <button data-val="borrowed" class="toggle-btn">I borrowed</button>
+        </div>
+      </div>
+      <div class="form-row">
+        <input type="number" id="iouAmount" placeholder="Amount">
+        <input type="date" id="iouDate" required>
+      </div>
+      <div class="form-row">
+        <input type="text" id="iouNote" placeholder="Note (what for?)">
+        <button id="addIouBtn" class="btn-primary">Add</button>
+      </div>
+      <p class="hint">Date is mandatory so you can always trace it back.</p>
+    </div>
+
+    <h2>Ledger by person</h2>
+    <div id="iouList" class="card-list"></div>
+  </section>
+
+  <!-- FD -->
+  <section id="view-fd" class="view hidden">
+    <div class="card">
+      <h2>Add fixed deposit</h2>
+      <div class="form-row">
+        <input type="text" id="fdBank" placeholder="Bank / account name">
+        <input type="number" id="fdPrincipal" placeholder="Principal amount">
+      </div>
+      <div class="form-row">
+        <input type="number" id="fdRate" placeholder="Interest rate % p.a." step="0.01">
+        <input type="number" id="fdTenure" placeholder="Tenure (months)">
+      </div>
+      <div class="form-row">
+        <select id="fdCompounding">
+          <option value="4">Quarterly (standard for most Indian FDs)</option>
+          <option value="12">Monthly</option>
+          <option value="1">Yearly</option>
+        </select>
+        <input type="date" id="fdStartDate">
+      </div>
+      <button id="addFdBtn" class="btn-primary">Add FD</button>
+    </div>
+
+    <h2>Your fixed deposits</h2>
+    <div id="fdList" class="card-list"></div>
+  </section>
+
+  <!-- CREDIT CARDS -->
+  <section id="view-cc" class="view hidden">
+    <div id="ccDetailList"></div>
+    <div class="card">
+      <h2>Pay a credit card bill</h2>
+      <p class="hint">Recorded as a transfer, not an expense — so your spending isn't double-counted.</p>
+      <div class="form-row">
+        <select id="ccPayFrom"></select>
+        <select id="ccPayTo"></select>
+      </div>
+      <div class="form-row">
+        <input type="number" id="ccPayAmount" placeholder="Amount">
+        <input type="date" id="ccPayDate">
+      </div>
+      <button id="ccPayBtn" class="btn-primary">Record payment</button>
+    </div>
+  </section>
+
+  <!-- REPORTS / DATA -->
+  <section id="view-data" class="view hidden">
+    <div class="card">
+      <h2>EUR → INR monthly rate</h2>
+      <p class="hint">Enter manually on the 7th (or whenever). Optional fetch button makes one network call only when you tap it — nothing automatic.</p>
+      <div class="form-row">
+        <input type="month" id="fxMonth">
+        <input type="number" id="fxRate" placeholder="Rate" step="0.0001">
+      </div>
+      <div class="form-row">
+        <button id="fxFetchBtn" class="btn-ghost">Fetch current rate now (goes online)</button>
+        <button id="fxSaveBtn" class="btn-primary">Save rate</button>
+      </div>
+      <div id="fxHistory"></div>
+    </div>
+
+    <div class="card">
+      <h2>Backup &amp; restore</h2>
+      <p class="hint">Everything lives only on this device. Export regularly.</p>
+      <div class="form-row">
+        <button id="exportJsonBtn" class="btn-primary">Export full backup (JSON)</button>
+        <button id="exportCsvBtn" class="btn-primary">Export transactions (CSV)</button>
+      </div>
+      <div class="form-row">
+        <input type="file" id="importFile" accept=".json">
+        <button id="importJsonBtn" class="btn-ghost">Import JSON backup</button>
+      </div>
+      <p id="lastBackupText" class="hint"></p>
+    </div>
+
+    <div class="card">
+      <h2>Reports</h2>
+      <p class="hint">Month-wise, account-wise, goal-wise and ITR-format PDF/Excel reports are coming in the next update.</p>
+    </div>
+  </section>
+
+</main>
+
+<nav class="tabbar">
+  <button data-view="dashboard" class="tab-btn active"><i>&#9679;</i><span>Home</span></button>
+  <button data-view="transactions" class="tab-btn"><i>&#8644;</i><span>Log</span></button>
+  <button data-view="accounts" class="tab-btn"><i>&#9776;</i><span>Accounts</span></button>
+  <button data-view="budget" class="tab-btn"><i>&#9635;</i><span>Budget</span></button>
+  <button data-view="goals" class="tab-btn"><i>&#9733;</i><span>Goals</span></button>
+  <button data-view="iou" class="tab-btn"><i>&#8646;</i><span>IOU</span></button>
+  <button data-view="fd" class="tab-btn"><i>&#8365;</i><span>FD</span></button>
+  <button data-view="cc" class="tab-btn"><i>&#9636;</i><span>Card</span></button>
+  <button data-view="data" class="tab-btn"><i>&#8681;</i><span>Data</span></button>
+</nav>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

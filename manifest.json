@@ -1,0 +1,15 @@
+{
+  "name": "My Money Book",
+  "short_name": "MoneyBook",
+  "description": "Offline personal expense, budget and goal tracker",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#2A3428",
+  "theme_color": "#22301F",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
