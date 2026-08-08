@@ -30,6 +30,9 @@
   <section id="view-dashboard" class="view">
     <div class="summary-grid" id="dashAccountSummary"></div>
 
+    <h2>Upcoming this month</h2>
+    <div id="dashPlanned" class="card-list"></div>
+
     <h2>This month vs budget</h2>
     <div class="envelope-list" id="dashEnvelopes"></div>
 
@@ -76,40 +79,35 @@
 
     <h2>Your accounts</h2>
     <div id="accountList" class="card-list"></div>
-
-    <div class="card">
-      <h2>Transfer between accounts</h2>
-      <div class="form-row">
-        <select id="transferFrom"></select>
-        <select id="transferTo"></select>
-      </div>
-      <div class="form-row">
-        <input type="number" id="transferAmount" placeholder="Amount (from account currency)">
-        <input type="date" id="transferDate">
-      </div>
-      <div class="form-row" id="transferRateRow" style="display:none;">
-        <span class="hint">Different currencies — enter conversion rate</span>
-        <input type="number" id="transferRate" placeholder="Rate" step="0.0001">
-      </div>
-      <button id="doTransferBtn" class="btn-primary">Transfer</button>
-    </div>
+    <p class="hint">To move money between accounts, use the Transfer option on the Log tab.</p>
   </section>
 
   <!-- TRANSACTIONS -->
   <section id="view-transactions" class="view hidden">
     <div class="card">
-      <h2>Add transaction</h2>
+      <h2>Add entry</h2>
       <div class="form-row">
         <div class="toggle-group" id="txTypeToggle">
           <button data-val="expense" class="toggle-btn active">Expense</button>
           <button data-val="income" class="toggle-btn">Income</button>
+          <button data-val="transfer" class="toggle-btn">Transfer</button>
         </div>
         <input type="date" id="txDate">
       </div>
-      <div class="form-row">
+
+      <div class="form-row" id="txDescRow">
         <input type="text" id="txDesc" placeholder="Description" style="flex:2;">
         <select id="txAccount"></select>
       </div>
+
+      <div class="form-row hidden" id="txToAccountRow">
+        <select id="txToAccount"></select>
+      </div>
+      <div class="form-row hidden" id="txTransferRateRow">
+        <span class="hint">Different currencies — enter conversion rate</span>
+        <input type="number" id="txTransferRate" placeholder="Rate" step="0.0001">
+      </div>
+
       <div class="form-row" id="txCategoryRow">
         <select id="txEnvelope">
           <option value="essential">Essential</option>
@@ -118,13 +116,18 @@
         </select>
         <select id="txSubcategory"></select>
       </div>
-      <div class="form-row">
+      <div class="form-row hidden" id="txFunGoalRow">
+        <select id="txFunGoalPicker"></select>
+      </div>
+
+      <div class="form-row" id="txModeRow">
         <select id="txMode">
           <option>Card</option>
           <option>Cash</option>
           <option>UPI-PhonePe</option>
           <option>UPI-GPay</option>
           <option>UPI-SamsungPay</option>
+          <option>Bank Transfer</option>
         </select>
         <input type="number" id="txAmount" placeholder="Amount">
       </div>
@@ -138,10 +141,11 @@
     <div class="form-row">
       <select id="txFilterMonth"></select>
       <select id="txFilterEnvelope">
-        <option value="all">All categories</option>
+        <option value="all">All</option>
         <option value="essential">Essential</option>
         <option value="fun">Fun</option>
         <option value="investment">Investment</option>
+        <option value="transfer">Transfers</option>
       </select>
     </div>
     <div id="txList" class="card-list"></div>
@@ -193,7 +197,8 @@
     </div>
 
     <div class="card">
-      <h2>Fun goal — something you're saving for</h2>
+      <h2>Add a fun goal</h2>
+      <p class="hint">You can have as many as you like — each tracked separately.</p>
       <div class="form-row">
         <input type="text" id="funGoalName" placeholder="What are you saving for?">
       </div>
@@ -201,9 +206,11 @@
         <input type="number" id="funGoalTarget" placeholder="Target amount (INR)">
         <input type="date" id="funGoalDate">
       </div>
-      <button id="saveFunGoalBtn" class="btn-primary">Save goal</button>
-      <div id="funGoalDisplay"></div>
+      <button id="saveFunGoalBtn" class="btn-primary">Add goal</button>
     </div>
+
+    <h2>Your fun goals</h2>
+    <div id="funGoalList" class="card-list"></div>
   </section>
 
   <!-- IOU -->
@@ -277,11 +284,67 @@
     </div>
   </section>
 
+  <!-- PLANNED / RECURRING -->
+  <section id="view-planned" class="view hidden">
+    <div class="card">
+      <h2>Add a recurring item</h2>
+      <p class="hint">It'll show up as "due" each month on your Home tab — tap it to record the actual transaction.</p>
+      <div class="form-row">
+        <input type="text" id="plDesc" placeholder="e.g. Netflix, Rent, Gym">
+        <div class="toggle-group" id="plTypeToggle">
+          <button data-val="expense" class="toggle-btn active">Expense</button>
+          <button data-val="income" class="toggle-btn">Income</button>
+        </div>
+      </div>
+      <div class="form-row" id="plCategoryRow">
+        <select id="plEnvelope">
+          <option value="essential">Essential</option>
+          <option value="fun">Fun</option>
+          <option value="investment">Investment</option>
+        </select>
+        <select id="plSubcategory"></select>
+      </div>
+      <div class="form-row">
+        <select id="plAccount"></select>
+        <select id="plMode">
+          <option>Card</option>
+          <option>Cash</option>
+          <option>UPI-PhonePe</option>
+          <option>UPI-GPay</option>
+          <option>UPI-SamsungPay</option>
+          <option>Bank Transfer</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <input type="number" id="plAmount" placeholder="Usual amount">
+        <input type="number" id="plDay" placeholder="Day of month (1-28)" min="1" max="28">
+      </div>
+      <button id="addPlannedBtn" class="btn-primary">Add recurring item</button>
+    </div>
+
+    <h2>Your recurring items</h2>
+    <div id="plannedList" class="card-list"></div>
+  </section>
+
   <!-- REPORTS / DATA -->
   <section id="view-data" class="view hidden">
     <div class="card">
-      <h2>EUR → INR monthly rate</h2>
-      <p class="hint">Enter manually on the 7th (or whenever). Optional fetch button makes one network call only when you tap it — nothing automatic.</p>
+      <h2>Appearance</h2>
+      <div class="form-row">
+        <select id="themeSelect">
+          <option value="ledger">Ledger green (default)</option>
+          <option value="blush">Pastel blush</option>
+          <option value="sky">Pastel sky</option>
+          <option value="lavender">Pastel lavender</option>
+          <option value="sand">Pastel sand</option>
+        </select>
+      </div>
+      <label class="checkbox-row"><input type="checkbox" id="themeChartsToggle"> Apply this theme to charts too (otherwise charts keep fixed colors)</label>
+    </div>
+
+    <div class="card">
+      <h2>EUR &rarr; INR monthly rate</h2>
+      <p class="hint">Enter manually on the 7th (or whenever). Fetch button makes one network call only when tapped — nothing automatic.</p>
       <div class="form-row">
         <input type="month" id="fxMonth">
         <input type="number" id="fxRate" placeholder="Rate" step="0.0001">
@@ -290,6 +353,7 @@
         <button id="fxFetchBtn" class="btn-ghost">Fetch current rate now (goes online)</button>
         <button id="fxSaveBtn" class="btn-primary">Save rate</button>
       </div>
+      <p id="fxStatus" class="hint"></p>
       <div id="fxHistory"></div>
     </div>
 
@@ -318,12 +382,13 @@
 <nav class="tabbar">
   <button data-view="dashboard" class="tab-btn active"><i>&#9679;</i><span>Home</span></button>
   <button data-view="transactions" class="tab-btn"><i>&#8644;</i><span>Log</span></button>
-  <button data-view="accounts" class="tab-btn"><i>&#9776;</i><span>Accounts</span></button>
+  <button data-view="accounts" class="tab-btn"><i>&#9776;</i><span>Accts</span></button>
   <button data-view="budget" class="tab-btn"><i>&#9635;</i><span>Budget</span></button>
   <button data-view="goals" class="tab-btn"><i>&#9733;</i><span>Goals</span></button>
   <button data-view="iou" class="tab-btn"><i>&#8646;</i><span>IOU</span></button>
   <button data-view="fd" class="tab-btn"><i>&#8365;</i><span>FD</span></button>
   <button data-view="cc" class="tab-btn"><i>&#9636;</i><span>Card</span></button>
+  <button data-view="planned" class="tab-btn"><i>&#8635;</i><span>Recur</span></button>
   <button data-view="data" class="tab-btn"><i>&#8681;</i><span>Data</span></button>
 </nav>
 

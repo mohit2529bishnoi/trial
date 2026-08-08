@@ -124,3 +124,36 @@ h3 { font-size: 13px; margin: 0 0 8px; color: var(--ink-soft); }
   }
   .form-row input, .form-row select, .toggle-btn { background: #1B2117; color: var(--ink); }
 }
+
+.checkbox-row { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-soft); margin-top: 6px; }
+.checkbox-row input { width: 16px; height: 16px; }
+.credit-note { font-size: 12px; color: var(--income); font-weight: 700; }
+.hidden { display: none !important; }
+
+/* ---- Pastel theme variants ---- */
+body.theme-blush {
+  --ink: #6B2E44; --ink-soft: #9A5C72; --paper: #FBEFF3; --paper-deep: #F5DEE6;
+  --card: #FFF7F9; --rule: #EBC3D2; --brass: #C97A98;
+  --income: #5B8A6B; --expense: #C4576B; --fun-c: #E39BB0; --invest-c: #7FB69A; --essential-c: #B98CAE;
+}
+body.theme-sky {
+  --ink: #1F3A5F; --ink-soft: #4F6E8F; --paper: #EAF3FB; --paper-deep: #D7E7F5;
+  --card: #F7FBFF; --rule: #BFD8EE; --brass: #5A8FC2;
+  --income: #3A8768; --expense: #C15B5B; --fun-c: #E0A96A; --invest-c: #4FA0C9; --essential-c: #6FA3D8;
+}
+body.theme-lavender {
+  --ink: #4A3B66; --ink-soft: #77699A; --paper: #F3EFFA; --paper-deep: #E5DDF4;
+  --card: #FBF9FF; --rule: #D2C4EC; --brass: #8C6FB8;
+  --income: #4E8A6E; --expense: #C15E7A; --fun-c: #C99AE0; --invest-c: #7AA6D1; --essential-c: #9C85D6;
+}
+body.theme-sand {
+  --ink: #5A4632; --ink-soft: #8A7457; --paper: #F7F0E4; --paper-deep: #EDE0CB;
+  --card: #FDF9F1; --rule: #E1CFAE; --brass: #B08A4E;
+  --income: #5E8A4E; --expense: #C1704A; --fun-c: #D9A75C; --invest-c: #7FA88A; --essential-c: #C2A26D;
+}
+@media (prefers-color-scheme: dark) {
+  body.theme-blush { --paper: #2A1B21; --paper-deep: #34222A; --card: #3A2530; --ink: #F5DEE6; --ink-soft: #C9A0B2; --rule: #5C3A47; }
+  body.theme-sky { --paper: #16222E; --paper-deep: #1D2E3D; --card: #22374A; --ink: #D7E7F5; --ink-soft: #93AFC8; --rule: #33506A; }
+  body.theme-lavender { --paper: #211B2E; --paper-deep: #2A2338; --card: #342B47; --ink: #E5DDF4; --ink-soft: #A796C4; --rule: #453A61; }
+  body.theme-sand { --paper: #2A2115; --paper-deep: #34291A; --card: #3D3120; --ink: #EDE0CB; --ink-soft: #B79E7B; --rule: #4F3F27; }
+}
