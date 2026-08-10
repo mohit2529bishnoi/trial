@@ -20,7 +20,10 @@
 </div>
 
 <header class="topbar">
-  <h1>My Money Book</h1>
+  <div style="display:flex;align-items:center;gap:10px;">
+    <img src="icon-192.png" alt="" style="width:28px;height:28px;border-radius:6px;">
+    <h1>My Money Book</h1>
+  </div>
   <button id="quickAddBtn" class="btn-primary">+ Add</button>
 </header>
 
@@ -129,6 +132,8 @@
           <option>UPI-SamsungPay</option>
           <option>Bank Transfer</option>
         </select>
+      </div>
+      <div class="form-row">
         <input type="number" id="txAmount" placeholder="Amount">
       </div>
       <div class="form-row">
