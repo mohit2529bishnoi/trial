@@ -1,4 +1,4 @@
-const CACHE_NAME = 'moneybook-v3';
+const CACHE_NAME = 'moneybook-v4';
 const ASSETS = [
   './',
   './index.html',

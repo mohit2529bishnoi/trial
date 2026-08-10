@@ -838,6 +838,30 @@ if ('serviceWorker' in navigator) {
   });
 }
 
+function renderChartImage(labels, values, colors) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 500; canvas.height = 350;
+  const chart = new Chart(canvas, {
+    type: 'doughnut',
+    data: { labels, datasets: [{ data: values, backgroundColor: colors }] },
+    options: {
+      responsive: false, animation: false,
+      plugins: { legend: { position: 'bottom', labels: { font: { size: 14 } } } }
+    }
+  });
+  const url = canvas.toDataURL('image/png');
+  chart.destroy();
+  return url;
+}
+function envelopeTotalsAllTime() {
+  return {
+    labels: ['Essential', 'Fun', 'Investment'],
+    values: ['essential', 'fun', 'investment'].map((env) =>
+      state.transactions.filter((t) => t.type === 'expense' && t.envelope === env).reduce((s, t) => s + t.amount, 0)),
+    colors: ['#378ADD', '#C97A3A', '#1D9E75']
+  };
+}
+
 /* ===================== REPORTS ===================== */
 document.getElementById('reportFormatToggle').addEventListener('click', (e) => {
   if (!e.target.dataset.val) return;
@@ -934,7 +958,7 @@ function buildReportData(type) {
   return { title: 'Report', header: [], rows: [] };
 }
 
-function generatePDF(data) {
+function generatePDF(data, chartImage) {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
   const marginX = 14;
@@ -945,6 +969,12 @@ function generatePDF(data) {
   doc.setFontSize(9);
   doc.text('My Money Book — generated ' + todayStr(), marginX, y);
   y += 8;
+
+  if (chartImage) {
+    const imgW = 90, imgH = 63;
+    doc.addImage(chartImage, 'PNG', marginX, y, imgW, imgH);
+    y += imgH + 8;
+  }
 
   const colCount = data.header.length;
   const pageWidth = doc.internal.pageSize.getWidth() - marginX * 2;
@@ -991,6 +1021,7 @@ function generateExcel(data) {
   const wb = XLSX.utils.book_new();
   const aoa = [[data.title], ['Generated ' + todayStr()], [], data.header, ...data.rows];
   if (data.note) aoa.push([], [data.note]);
+  aoa.push([], ['Note: chart images are only included in the PDF export — select the data above and use Insert > Chart in Excel/Sheets if you want a visual here.']);
   const ws = XLSX.utils.aoa_to_sheet(aoa);
   ws['!cols'] = data.header.map(() => ({ wch: 18 }));
   XLSX.utils.book_append_sheet(wb, ws, data.title.slice(0, 28));
@@ -1003,8 +1034,16 @@ document.getElementById('generateReportBtn').addEventListener('click', () => {
   const data = buildReportData(type);
   if (data.rows.length === 0) { alert('No data yet for this report — log some transactions first.'); return; }
   try {
-    if (format === 'pdf') generatePDF(data);
-    else generateExcel(data);
+    if (format === 'pdf') {
+      let chartImage = null;
+      if (['month', 'expenditure', 'budget'].includes(type)) {
+        const et = envelopeTotalsAllTime();
+        if (et.values.some((v) => v > 0)) chartImage = renderChartImage(et.labels, et.values, et.colors);
+      }
+      generatePDF(data, chartImage);
+    } else {
+      generateExcel(data);
+    }
   } catch (e) {
     alert('Report generation failed: ' + e.message + '. If you are offline, this needs the PDF/Excel library to have loaded at least once while online.');
   }
