@@ -837,3 +837,175 @@ if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js').catch(() => {});
   });
 }
+
+/* ===================== REPORTS ===================== */
+document.getElementById('reportFormatToggle').addEventListener('click', (e) => {
+  if (!e.target.dataset.val) return;
+  document.querySelectorAll('#reportFormatToggle .toggle-btn').forEach((b) => b.classList.remove('active'));
+  e.target.classList.add('active');
+});
+
+function buildReportData(type) {
+  const acctName = (id) => { const a = state.accounts.find((x) => x.id === id); return a ? a.name : '?'; };
+
+  if (type === 'month') {
+    const months = Array.from(new Set(state.transactions.filter((t) => t.type !== 'transfer').map((t) => t.date.slice(0, 7)))).sort();
+    const header = ['Month', 'Income', 'Essential', 'Fun', 'Investment', 'Total Expense', 'Net'];
+    const rows = months.map((m) => {
+      const income = state.transactions.filter((t) => t.type === 'income' && t.date.slice(0, 7) === m).reduce((s, t) => s + t.amount, 0);
+      const ess = monthEnvelopeActual(m, 'essential');
+      const fun = monthEnvelopeActual(m, 'fun');
+      const inv = monthEnvelopeActual(m, 'investment');
+      const totalExp = ess + fun + inv;
+      return [m, income.toFixed(2), ess.toFixed(2), fun.toFixed(2), inv.toFixed(2), totalExp.toFixed(2), (income - totalExp).toFixed(2)];
+    });
+    return { title: 'Month-wise Report', header, rows };
+  }
+
+  if (type === 'account') {
+    const header = ['Account', 'Type', 'Currency', 'Balance', 'Total Income', 'Total Expense'];
+    const rows = state.accounts.map((a) => {
+      const inc = state.transactions.filter((t) => t.type === 'income' && t.accountId === a.id).reduce((s, t) => s + t.amount, 0);
+      const exp = state.transactions.filter((t) => t.type === 'expense' && t.accountId === a.id).reduce((s, t) => s + t.amount, 0);
+      const bal = a.type === 'creditcard' ? -ccOwed(a.id) : accountBalance(a.id);
+      return [a.name, a.type, a.currency, bal.toFixed(2), inc.toFixed(2), exp.toFixed(2)];
+    });
+    return { title: 'Account-wise Report', header, rows };
+  }
+
+  if (type === 'expenditure') {
+    const header = ['Envelope', 'Subcategory', 'Amount', '% of envelope'];
+    const rows = [];
+    ['essential', 'fun', 'investment'].forEach((env) => {
+      const envTotal = state.transactions.filter((t) => t.type === 'expense' && t.envelope === env).reduce((s, t) => s + t.amount, 0);
+      SUBCATS[env].forEach((sc) => {
+        const amt = state.transactions.filter((t) => t.type === 'expense' && t.envelope === env && t.subcategory === sc).reduce((s, t) => s + t.amount, 0);
+        if (amt > 0) rows.push([env, sc, amt.toFixed(2), envTotal > 0 ? ((amt / envTotal) * 100).toFixed(1) + '%' : '0%']);
+      });
+    });
+    return { title: 'Expenditure-wise Report (all time)', header, rows };
+  }
+
+  if (type === 'goal') {
+    const header = ['Goal', 'Target', 'Saved', 'Remaining', '% Complete', 'Target Date'];
+    const rows = [];
+    const efSaved = investmentTotalAllTime();
+    const efTarget = state.goals.emergencyFund.target;
+    rows.push(['Emergency fund', efTarget.toFixed(2), efSaved.toFixed(2), Math.max(0, efTarget - efSaved).toFixed(2), Math.min(100, (efSaved / efTarget) * 100).toFixed(1) + '%', '—']);
+    state.goals.funGoals.forEach((fg) => {
+      const s = funGoalSaved(fg.id);
+      rows.push([fg.name, fg.target.toFixed(2), s.toFixed(2), Math.max(0, fg.target - s).toFixed(2), Math.min(100, (s / fg.target) * 100).toFixed(1) + '%', fg.date || '—']);
+    });
+    return { title: 'Goal-wise Report', header, rows };
+  }
+
+  if (type === 'budget') {
+    const months = Array.from(new Set(state.transactions.filter((t) => t.type === 'expense').map((t) => t.date.slice(0, 7)))).sort();
+    const header = ['Month', 'Envelope', 'Cap', 'Actual', 'Variance', 'Status'];
+    const rows = [];
+    months.forEach((m) => {
+      ['essential', 'fun', 'investment'].forEach((env) => {
+        const cap = envelopeCap(env);
+        const actual = monthEnvelopeActual(m, env);
+        const variance = cap - actual;
+        rows.push([m, env, cap.toFixed(2), actual.toFixed(2), variance.toFixed(2), variance >= 0 ? 'Under' : 'Over']);
+      });
+    });
+    return { title: 'Budget-tracking Analysis', header, rows };
+  }
+
+  if (type === 'itr') {
+    const sources = {};
+    state.transactions.filter((t) => t.type === 'income').forEach((t) => {
+      const key = t.desc || 'Unlabelled';
+      sources[key] = (sources[key] || 0) + t.amount;
+    });
+    const header = ['Income Source', 'Total Amount', 'Entries'];
+    const rows = Object.entries(sources).map(([src, amt]) => {
+      const count = state.transactions.filter((t) => t.type === 'income' && (t.desc || 'Unlabelled') === src).length;
+      return [src, amt.toFixed(2), String(count)];
+    });
+    return {
+      title: 'ITR-format Income Summary',
+      header, rows,
+      note: 'This groups your logged income by description only — it is NOT a certified tax document and does not map to official ITR income heads (Salary, Business, Capital Gains, Other Sources). Use this as a starting point and confirm classification with a CA before filing.'
+    };
+  }
+  return { title: 'Report', header: [], rows: [] };
+}
+
+function generatePDF(data) {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  const marginX = 14;
+  let y = 18;
+  doc.setFontSize(15);
+  doc.text(data.title, marginX, y);
+  y += 6;
+  doc.setFontSize(9);
+  doc.text('My Money Book — generated ' + todayStr(), marginX, y);
+  y += 8;
+
+  const colCount = data.header.length;
+  const pageWidth = doc.internal.pageSize.getWidth() - marginX * 2;
+  const colWidth = pageWidth / colCount;
+  const rowHeight = 7;
+  const pageHeight = doc.internal.pageSize.getHeight();
+
+  function drawRow(cells, bold) {
+    doc.setFont(undefined, bold ? 'bold' : 'normal');
+    cells.forEach((c, i) => {
+      doc.text(String(c).slice(0, 24), marginX + i * colWidth, y);
+    });
+    y += rowHeight;
+  }
+
+  doc.setFontSize(8);
+  drawRow(data.header, true);
+  doc.setLineWidth(0.2);
+  doc.line(marginX, y - 5, marginX + pageWidth, y - 5);
+
+  data.rows.forEach((row) => {
+    if (y > pageHeight - 20) {
+      doc.addPage();
+      y = 18;
+      drawRow(data.header, true);
+      doc.line(marginX, y - 5, marginX + pageWidth, y - 5);
+    }
+    drawRow(row, false);
+  });
+
+  if (data.note) {
+    y += 6;
+    if (y > pageHeight - 30) { doc.addPage(); y = 18; }
+    doc.setFontSize(8);
+    doc.setFont(undefined, 'italic');
+    const split = doc.splitTextToSize(data.note, pageWidth);
+    doc.text(split, marginX, y);
+  }
+
+  doc.save(`moneybook-${data.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${todayStr()}.pdf`);
+}
+
+function generateExcel(data) {
+  const wb = XLSX.utils.book_new();
+  const aoa = [[data.title], ['Generated ' + todayStr()], [], data.header, ...data.rows];
+  if (data.note) aoa.push([], [data.note]);
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws['!cols'] = data.header.map(() => ({ wch: 18 }));
+  XLSX.utils.book_append_sheet(wb, ws, data.title.slice(0, 28));
+  XLSX.writeFile(wb, `moneybook-${data.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${todayStr()}.xlsx`);
+}
+
+document.getElementById('generateReportBtn').addEventListener('click', () => {
+  const type = document.getElementById('reportType').value;
+  const format = document.querySelector('#reportFormatToggle .toggle-btn.active').dataset.val;
+  const data = buildReportData(type);
+  if (data.rows.length === 0) { alert('No data yet for this report — log some transactions first.'); return; }
+  try {
+    if (format === 'pdf') generatePDF(data);
+    else generateExcel(data);
+  } catch (e) {
+    alert('Report generation failed: ' + e.message + '. If you are offline, this needs the PDF/Excel library to have loaded at least once while online.');
+  }
+});
